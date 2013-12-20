@@ -1,0 +1,45 @@
+<html>
+<head>
+	<title>Power Grid Simulation - Elexim</title>
+	<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+	<script>
+		x1 = 72.33; x2 = 140.63;
+		y1 = 57.167; y2 = 16.62;
+		function convert_coord(x, y) {
+			x = x1 + (x2 - x1) * (x / $("#vizimg").width());
+			y = y1 + (y2 - y1) * (y / $("#vizimg").height());
+			$("#clked").html( "Coordinates pressed: " + (x) + ' , ' + (y));
+		}	//~ convert_coord
+		
+		function load_data() {
+			console.log('Starting loading matlab.json...');
+			$.get( "matlab.json", function( data ) {
+				alert(data);
+			}).fail(function(jqXHR, textStatus, errorThrown) {
+				console.log(JSON.stringify(jqXHR));
+				console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
+			});
+		}	//~ loadData
+		
+		$( document ).ready(function() {
+			console.log('Document ready!');
+			load_data();
+			$("#vizimg").click(function(e){
+				var posX = $(this).position().left,posY = $(this).position().top;
+				convert_coord(e.pageX - posX, e.pageY - posY);
+			});
+		});
+	</script>
+</head>
+<body>
+<?php
+?>
+<table border="0" cellpadding="0">
+<tr valign="top"><td>
+	<img src="sim/china_full_small.png" id="vizimg" />
+</td><td>
+	<div id="input"></div>
+</td></tr>
+<tr><td colspan="2"><div id="clked"></div></td></tr>
+</table></body>
+</html>

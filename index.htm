@@ -1,0 +1,342 @@
+<html>
+<head>
+	<title>Power Grid Simulation - Elexim</title>
+	<style>
+		body {
+			font-family: Helvetica, Sans-Serif, Arial;
+		}
+		.block {
+			overflow:scroll;
+			height: 400Pt;
+			width: 100%;
+		}
+		input.p
+		{
+			width: 35Pt;
+			height: 12Pt;
+			font-size: 8Pt;
+		}
+		div.cnt {
+			display:inline-block;
+			min-width: 40Px;
+			font-size: 9Pt;
+		}
+		div.p, .formlabel {
+			font-size: 9Pt;
+			display:inline-block;
+			min-width: 50Px;
+			text-align: center;
+		}
+		.title {
+			text-align: center;
+			font-weight: bold;
+			margin-top: 20Pt;
+		}
+		.header {
+			font-family: Helvetica, Sans-Serif;
+		}
+		.del {
+			background-image: URL('http://www.qsonix.com/Public/v5/images/QsonixRemotePro_DeleteIcon.jpg');
+			/*background-position: -1px -1px;*/
+			min-width: 19Px;
+			height: 19Px;
+			float: right;
+		}
+		.btn_add {
+			text-align: center;
+			padding-top: 16%;
+			color: white;
+			font-weight: bold;
+			height: 54Px;
+			background: URL('img/add.png');
+			background-position: center;
+			background-repeat: no-repeat;
+			cursor:hand;
+		}
+		.form {
+			border: solid 1Px gray;
+			margin: 7Pt;
+			padding: 20Pt;
+			text-align: center;
+		}
+	</style>
+	<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+	<script>
+		var nodes = new Array();
+		var edges = new Array();
+		var update = "#e";
+		var oldn = -1;
+		x1 = 72.33; x2 = 140.63;
+		y1 = 57.167; y2 = 16.62;
+
+		function status(message, color)
+		{
+			$("#clked").html("<div style=\"color: "+color+";\">"+message+"");
+		}
+
+		function status_err(message) {status(message, "red");}
+		function status_ok(message) {status(message, "green");}
+
+		function convert_coord(x, y) {
+			x = x1 + (x2 - x1) * (x / $("#vizimg").width());
+			y = y1 + (y2 - y1) * (y / $("#vizimg").height());
+			//$("#clked").html( "Nearest node: " + nearest_point(x, y));
+			if(!$('#edge_add_form').not(':visible'))
+			{
+				$("#node_new_lon").val(x.toPrecision(8));
+				$("#node_new_lat").val(y.toPrecision(7));
+				status_ok("Fill the data for the node please...");
+				$("#node_new_gen").focus();
+			} else $("#clked").html( "Selected coordinates:  " + (x) + ", "+ (y));
+			$(update).val(nearest_point(x, y));
+			$(update).trigger("change");
+		}	//~ convert_coord
+
+		function highlight(x, y) {
+			x = x1 + (x2 - x1) * (x / $("#vizimg").width());
+			y = y1 + (y2 - y1) * (y / $("#vizimg").height());
+			n = nearest_point(x, y);
+			//$("#clked").html( "Nearest node: " + nearest_point(x, y));
+			if(oldn > -1)
+				$("#node"+oldn).css("background-color","white");
+			else
+				status_ok("");
+			if (n > -1)
+			{
+				$("#node"+n).css("background-color","yellow");
+				status_ok("Node "+nodes[n].id);
+			}
+			oldn = n;
+		}
+
+		function nearest_point(x, y)
+		{
+			dist = 1000;
+			id = -1;
+			for(i = 0; i < nodes.length; i++)
+			{
+				dist_old = dist;
+				dist = Math.min(dist, Math.sqrt(Math.pow(x-nodes[i].lon, 2) + Math.pow(y+nodes[i].lat, 2)));
+				if (dist < dist_old)
+					id = i + 1;
+			}
+			return dist < 4 ? id : -1;
+		}	//~ nearest_point
+
+		function update_nodes(data, elem) {
+			$(elem).empty();
+			for (i = 0; i < data.length; i++)
+			{
+				node = data[i];
+				$(elem).append("<div id=\"node"+i+"\" data-id=\""+i+"\"><div class=\"cnt\">"+node.id+"</div> <input data-id=\""+i+"\" data-role=\"gen\" type=\"text\" value=\""+node.gen+"\" class=\"p\" />  <input data-id=\""+i+"\" data-role=\"cons\"  type=\"text\" value=\""+node.cons+"\" class=\"p\" /><div class=\"del\" data-id=\""+i+"\">&nbsp;</div></div>");
+			}
+			$(elem).find(':input').each(function(){
+  				$(this).change(function(e){
+					$.post( "data.php", { action: $(this).data('role'), id: $(this).data('id') , value: $(this).val()} )
+		  				.done(function( data ) {
+							status_ok("New node values saved");
+							update_page(data);
+		  				});
+  				});
+			});
+			$(elem).find('div.del').each(function(){
+  				$(this).click(function(e){
+					$.post( "data.php", { action: "delnode", id: $(this).data('id') })
+		  				.done(function( data ) {
+							status_ok("Node deleted successfully");
+							update_page(data);
+		  				}).fail(function(jqXHR, textStatus, errorThrown){alert(textStatus);});
+  				});
+			});
+			$(elem).append("<div id=\"node_add\" class=\"btn_add\">ADD NODE</div><div id=\"node_add_form\" class=\"form\"><div><div class=\"formlabel\">Qgen:</div> <input type=\"text\" class=\"p\" id=\"node_new_gen\" /></div><div><div class=\"formlabel\">Qcons:</div> <input type=\"text\" class=\"p\" id=\"node_new_cons\" /><div><div class=\"formlabel\">Lon:</div> <input type=\"text\" class=\"p\" id=\"node_new_lon\" /></div><div class=\"formlabel\">Lat:</div> <input type=\"text\" class=\"p\" id=\"node_new_lat\" /></div><input type=\"button\" value=\"Add node\" onclick=\"submit_node();\"></div>");
+			$("#node_add_form").hide();
+			$("#node_add").click(function(e){
+				status_ok("Click the map to set the coordinates...");
+				$("#node_new_lon").val("Click map...");
+				$("#node_new_lat").val("Click map...");
+				$("#node_add").slideToggle();
+				$("#node_add_form").slideToggle();
+			});
+			$('#node_new_cons').bind('keyup', function (e) {
+        		var key = e.keyCode || e.which;
+        		if (key === 13) {
+                	submit_node();
+            	};
+    		});       
+		}	//~ update_nodes
+
+		function update_edges(data, elem) {
+			$(elem).empty();
+			for (i = 0; i < data.length; i++)
+			{
+				node = data[i];
+				$(elem).append("<div id=\"edgde"+i+"\" data-id=\""+i+"\">"+i+" <div class=\"p\">"+node.src+"</div>-<div class=\"p\">"+node.dst+"</div>  <input data-id=\""+i+"\" data-role=\"edit\"  type=\"text\" value=\""+node.coeff+"\" class=\"p\" /><div class=\"del\" data-id=\""+node.src+"\" data-id2=\""+node.dst+"\">&nbsp;</div></div>");
+			}
+			//~ TODO fill numbers by click and nearest neighbor
+			$(elem).find(':input').each(function(){
+  				$(this).change(function(e){
+					$.post( "data.php", { action: $(this).data('role'), id: $(this).data('id'), value: $(this).val() })
+		  				.done(function( data ) {
+							status_ok("New edge values saved!");
+							update_page(data);
+		  				});
+  				});
+			});
+			$(elem).find('div.del').each(function(){
+  				$(this).click(function(e){
+					$.post( "data.php", { action: "unlink", id: $(this).data("id"), id2: $(this).data("id2") })
+		  				.done(function( data ) {
+		  					$("#edges").empty();
+							status_ok("Edge between nodes deleted!");
+							update_page(data);
+		  				}).fail(function(jqXHR, textStatus, errorThrown){alert(textStatus);});
+  				});
+			});
+			$(elem).append("<div id=\"edge_add\" class=\"btn_add\">ADD EDGE</div><div id=\"edge_add_form\" class=\"form\"><div><div class=\"formlabel\">From:</div> <input type=\"text\" class=\"p\" id=\"edge_new_src\" /></div><div><div class=\"formlabel\">To:</div> <input type=\"text\" class=\"p\" id=\"edge_new_dst\" /><div><div class=\"formlabel\" title=\"Transfer coefficient\">Value:</div> <input type=\"text\" class=\"p\" id=\"edge_new_coeff\" /></div><input type=\"button\" value=\"Add edge\" onclick=\"submit_edge();\"></div>");
+			$("#edge_add_form").hide();
+			$("#edge_add").click(function(e){
+				$("#edge_add").slideToggle();
+				$("#edge_add_form").slideToggle();
+				update = "#edge_new_src";
+				status_ok("Click the source node...");
+				$("#edge_new_src").change(function(){
+					if ($(this).val() > -1)
+					{
+						update = "#edge_new_dst";
+						status_ok("Click the destination node...");
+					}
+				});
+				$("#edge_new_dst").change(function(){
+					if ($(this).val() > -1)
+					{
+						update = "#e";
+						$("#edge_new_coeff").focus();
+						status_ok("Enter the transmission coefficient...");
+					}
+				});
+				$('#edge_new_coeff').bind('keyup', function (e) {
+            		var key = e.keyCode || e.which;
+            		if (key === 13) {
+                    	submit_edge();
+                	};
+        		});       
+			});
+		}	//~ update_edges
+
+		function submit_node() {
+			if (parseFloat($("#node_new_lat").val()) == NaN || parseFloat($("#node_new_lon").val()) == NaN) {status_err("Please set the proper coordinates!"); return false;}
+			if ($("#node_new_gen").val() == '') {status_err("Please specify generation for new node!"); return false;}
+			if ($("#node_new_cons").val() == '') {status_err("Please specify consumption for new node!"); return false;}
+			$.post( "data.php", { action: "addnode", lon: $("#node_new_lon").val(), lat: $("#node_new_lat").val(), gen: $("#node_new_gen").val(), cons: $("#node_new_cons").val()  })
+  				.done(function( data ) {
+					status_ok("Node has been created");
+					update_page(data);
+  				}).fail(function(jqXHR, textStatus, errorThrown){alert(errorThrown);});
+		}
+
+		function submit_edge() {
+			if ($("#edge_new_src").val() == '') {status_err("Please specify source node!"); return false;}
+			if ($("#edge_new_dst").val() == '') {status_err("Please specify destination node!"); return false;}
+			if ($("#edge_new_coeff").val() == '') {status_err("Please specify transmission coefficient!"); return false;}
+			if (parseFloat($("#edge_new_coeff").val()) < 0) {status_err("Please specify POSITIVE transmission coefficient!"); return false;}
+			if (parseFloat($("#edge_new_coeff").val()) > 1) {status_err("Please specify a transmission coefficient less or equal than 1!"); return false;}
+			$.post( "data.php", { action: "link", id: $("#edge_new_src").val(), id2: $("#edge_new_dst").val(), value: $("#edge_new_coeff").val()  })
+  				.done(function( data ) {
+					status_ok("Edge between nodes is created");
+					update_page(data);
+  				}).fail(function(jqXHR, textStatus, errorThrown){alert(errorThrown);});
+		}
+
+		function update_page( data ) {
+				nodes = new Array();
+				edges = new Array();
+				if (data.substring)
+					data = jQuery.parseJSON(data);
+				console.log(data);
+				x1 = data.transx[0];
+				x2 = data.transx[1];
+				y1 = -data.transy[0];
+				y2 = -data.transy[1];
+				if (data.nodecoordinates.length != data.qgen[0].length || data.nodecoordinates.length != data.qcons[0].length) {
+					status_err("Data inconsistent, check arrays dimensions");
+					return false;
+				}
+				for (i = 0; i < data.nodecoordinates.length; i++)
+				{
+					nodes[i] = new Object();
+					nodes[i].id = data.qgen[2][i];
+					nodes[i].lon = data.nodecoordinates[i][0];
+					nodes[i].lat = data.nodecoordinates[i][1];
+					nodes[i].gen = data.qgen[0][i];
+					nodes[i].cons = data.qcons[0][i];
+				}
+				update_nodes(nodes, "#nodes");
+				for (i = 0; i < data.ktrans[0].length; i++)
+				{
+					edges[i] = new Object();
+					edges[i].coeff = data.ktrans[0][i];
+					edges[i].src = data.ktrans[1][i];
+					edges[i].dst = data.ktrans[2][i];
+				}
+				update_edges(edges, "#edges");
+				$("#vizimg").attr("src", "image.php?model="+$("#model").val()+"&timestamp=" + new Date().getTime());
+		}	//~ update_page
+		
+		function load_data() {
+			$.getJSON( "data.php", update_page).fail(function(jqXHR, textStatus, errorThrown) {
+				console.log("AJAX error: " + textStatus + ' : ' + errorThrown + "<br>Double-check the 'load_data.m' file syntax!");
+				console.log(JSON.stringify(jqXHR));
+				status_err("AJAX error: " + textStatus + ' : ' + errorThrown + "<br>Double-check the 'load_data.m' file syntax!");
+			}); 
+			status_ok("Data loaded successfully");
+		}	//~ loadData
+
+		function reset() {
+			$.post( "data.php", { action: "reset", id: "-1" })
+  				.done(function( data ) {
+					status_ok("Data reset successfully!");
+					update_page(data);
+		  			status_ok("Reset successful!");
+  				});
+		}	//~ reset
+		
+		$( document ).ready(function() {
+			$("#vizimg").click(function(e){
+				var posX = $(this).position().left,posY = $(this).position().top;
+				convert_coord(e.pageX - posX, e.pageY - posY);
+			});
+			$('#vizimg').mousemove(function(e){
+        		var x = e.pageX - this.offsetLeft;
+		        var y = e.pageY - this.offsetTop;
+		        highlight(x, y);
+    		});
+			load_data();
+		});
+	</script>
+</head>
+<body>
+<table border="0" cellpadding="0">
+<tr valign="top"><td>
+	<img src="http://wallpoper.com/images/00/28/55/36/loading_00285536.jpg" id="vizimg" />
+</td><td style="width: 280x; text-align: left;">
+	<div id="input">
+	Model: <select id="model" onchange="load_data();"><option value="1">Poisson-based direct solver</option><option value="2" selected>DC Approximation GCR solver</option></select>
+	<table><tr><td>
+		<div class="title">Nodes list</div>
+		<div class="hdr"># &nbsp; Generation &nbsp; &nbsp; Consumption</div>
+		<div id="nodes" class="block"></div>
+	</td><td>
+		<div class="title">Edges list</div>
+		<div class="hdr"># &nbsp; From &nbsp; To</div>
+		<div id="edges" class="block"></div>
+	</td></tr>
+	</table>
+	</div>
+	<div class="form" style="padding: 10Pt;">
+		<div class="title" style="margin-top: 0;">Service actions</div>
+		<input type="button" value="Reset China!" onclick="reset();" />
+	</div
+</td></tr>
+<tr><td colspan="2"><div id="clked"></div></td></tr>
+</table></body>
+</html>
