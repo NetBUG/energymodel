@@ -1,4 +1,4 @@
-function VisualizeNetwork(NodeCoordinates,NodalValues,EdgeConnections,FlowValues,color,height);
+function VisualizeNetwork(NodeCoordinates,NodalValues,EdgeConnections,FlowValues,color,height, nodeSize);
 %Visualizes a network using circles and edges
 % 
 % EXAMPLE 1
@@ -18,7 +18,7 @@ function VisualizeNetwork(NodeCoordinates,NodalValues,EdgeConnections,FlowValues
 % Copyright Luca Daniel, MIT 2013
 
 if ~exist('color','var')
-   color = 'b';
+   color = 'w';
 end
 if ~exist('height','var')
    height = 0;
@@ -29,14 +29,21 @@ points = 20;
 for i = 1:size(NodalValues,1),
    center = [NodeCoordinates(i,1) NodeCoordinates(i,2)];
    radius = NodalValues(i);
-   DrawCircle(center,radius,color,height,points);
+   if radius < 0
+       radius = radius * -1;
+       color = 'k';
+   else
+       color = 'w';
+   end
+   DrawCircle(center,nodeSize(i),color,height,points);
 end
 
 clear i
+color = 'k';
 for i = 1:size(FlowValues,1),
    nodeA = [NodeCoordinates(EdgeConnections(i,1),1) NodeCoordinates(EdgeConnections(i,1),2)];
    nodeB = [NodeCoordinates(EdgeConnections(i,2),1) NodeCoordinates(EdgeConnections(i,2),2)];
-   thickness = 10*FlowValues(i);
+   thickness = 0.0001 + min(10*FlowValues(i), 10);
    DrawEdge(nodeA,nodeB,thickness,color,height);
 end
 

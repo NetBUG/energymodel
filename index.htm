@@ -34,6 +34,7 @@
 		}
 		.header {
 			font-family: Helvetica, Sans-Serif;
+			font-size: 8Pt;
 		}
 		.del {
 			background-image: URL('http://www.qsonix.com/Public/v5/images/QsonixRemotePro_DeleteIcon.jpg');
@@ -118,7 +119,7 @@
 				dist_old = dist;
 				dist = Math.min(dist, Math.sqrt(Math.pow(x-nodes[i].lon, 2) + Math.pow(y+nodes[i].lat, 2)));
 				if (dist < dist_old)
-					id = i + 1;
+					id = i;
 			}
 			return dist < 4 ? id : -1;
 		}	//~ nearest_point
@@ -317,13 +318,13 @@
 <body>
 <table border="0" cellpadding="0">
 <tr valign="top"><td>
-	<img src="http://wallpoper.com/images/00/28/55/36/loading_00285536.jpg" id="vizimg" />
+	<img src="http://wallpoper.com/images/00/28/55/36/loading_00285536.jpg" id="vizimg" style="width: 1246Px;"/>
 </td><td style="width: 280x; text-align: left;">
 	<div id="input">
 	Model: <select id="model" onchange="load_data();"><option value="1">Poisson-based direct solver</option><option value="2" selected>DC Approximation GCR solver</option></select>
 	<table><tr><td>
 		<div class="title">Nodes list</div>
-		<div class="hdr"># &nbsp; Generation &nbsp; &nbsp; Consumption</div>
+		<div class="hdr"># &nbsp; Generation(GW) &nbsp; &nbsp; Consumption(GW)</div>
 		<div id="nodes" class="block"></div>
 	</td><td>
 		<div class="title">Edges list</div>

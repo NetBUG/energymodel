@@ -16,7 +16,7 @@
 	$src_y = 298; // Crop Srart Y position in original image
 	$src_w = 1764; // $src_x + $dst_w Crop end X position in original image
 	$src_h = 1046; // $src_y + $dst_h Crop end Y position in original image
-	$dst_w = $src_w - $src_x; // Thumb width
+	$dst_w = ($src_w - $src_x) * 0.85; // Thumb width
 	$dst_h = $src_h - $src_y; // Thumb height
 
 	// Creating an image with true colors having thumb dimensions.( to merge with the original image )
