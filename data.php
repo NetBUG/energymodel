@@ -92,7 +92,7 @@ if (isset($_POST['action']))
 			$data['nodecoordinates'][] = array($lon, $lat);
 			$data['qgen'][0][] = $gen;
 			$data['qcons'][0][] = $cons;
-			$data['qcons'][2][] = $data['qgen'][1][] = 0;
+			$data['qcons'][1][] = $data['qgen'][1][] = 0;
 			$data['qcons'][2][] = $data['qgen'][2][] = max($data['qgen'][2]) + 1;
 			break;
 		case 'delnode':
